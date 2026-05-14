@@ -14,6 +14,7 @@ import { GetUserUseCase } from '../../application/use-cases/get-user/get-user.us
 import { ListUsersUseCase } from '../../application/use-cases/list-users/list-users.use-case';
 import { UpdateUserUseCase } from '../../application/use-cases/update-user/update-user.use-case';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { AdminGuard } from './guards/admin.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller()
@@ -31,7 +32,7 @@ export class UsersController {
   }
 
   @Get('users')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @HttpCode(HttpStatus.OK)
   async list() {
     const data = await this.listUsers.execute();

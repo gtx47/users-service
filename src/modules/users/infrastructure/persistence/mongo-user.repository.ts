@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { User } from '../../domain/entities/user.entity';
 import {
   UpdateUserChanges,
+  UpsertUserData,
   UserRepositoryPort,
 } from '../../domain/ports/user.repository.port';
 import { USER_MODEL_NAME, UserDocument, UserMongo } from './user.schema';
@@ -47,6 +48,18 @@ export class MongoUserRepository implements UserRepositoryPort {
 
   async count(): Promise<number> {
     return this.userModel.countDocuments().exec();
+  }
+
+  async upsertByEmail(data: UpsertUserData): Promise<User> {
+    const email = data.email.toLowerCase().trim();
+    const doc = await this.userModel
+      .findOneAndUpdate(
+        { email },
+        { $set: { name: data.name, email, role: data.role } },
+        { new: true, upsert: true, setDefaultsOnInsert: true },
+      )
+      .exec();
+    return this.toDomain(doc as UserDocument);
   }
 
   private toDomain(doc: UserDocument): User {

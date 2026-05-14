@@ -7,7 +7,12 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { TOKEN_SERVICE } from '../../../users.tokens';
-import { TokenServicePort } from '../../../domain/ports/token-service.port';
+import {
+  TokenPayload,
+  TokenServicePort,
+} from '../../../domain/ports/token-service.port';
+
+export type AuthenticatedRequest = Request & { user?: TokenPayload };
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -16,7 +21,7 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const header = (request.headers.authorization as string) || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
 
@@ -29,7 +34,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Token inválido');
     }
 
-    (request as Request & { user?: unknown }).user = payload;
+    request.user = payload;
     return true;
   }
 }
