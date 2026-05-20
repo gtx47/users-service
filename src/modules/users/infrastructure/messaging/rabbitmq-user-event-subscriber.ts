@@ -91,7 +91,10 @@ export class RabbitMQUserEventSubscriber
           string,
           unknown
         >;
-        await this.syncUser.execute(payload);
+        await this.syncUser.execute({
+          ...payload,
+          eventId: msg.properties.messageId ?? undefined,
+        });
         this.channel.ack(msg);
       } catch (err) {
         this.logger.error(

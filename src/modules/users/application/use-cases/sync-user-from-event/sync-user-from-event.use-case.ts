@@ -1,9 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { USER_REPOSITORY } from '../../../users.tokens';
+import { PROCESSED_EVENT_STORE, USER_REPOSITORY } from '../../../users.tokens';
 import { UserRole } from '../../../domain/entities/user.entity';
+import { ProcessedEventStorePort } from '../../../domain/ports/processed-event-store.port';
 import { UserRepositoryPort } from '../../../domain/ports/user.repository.port';
 
 export interface SyncUserFromEventCommand {
+  eventId?: unknown;
   name?: unknown;
   email?: unknown;
   role?: unknown;
@@ -15,19 +17,26 @@ export class SyncUserFromEventUseCase {
 
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepositoryPort,
+    @Inject(PROCESSED_EVENT_STORE) private readonly processedEventStore: ProcessedEventStorePort,
   ) {}
 
   async execute(command: SyncUserFromEventCommand): Promise<void> {
+    const eventId = typeof command.eventId === 'string' ? command.eventId : '';
     const name = typeof command.name === 'string' ? command.name.trim() : '';
     const email = typeof command.email === 'string' ? command.email.trim() : '';
-    const roleRaw =
-      typeof command.role === 'string' ? command.role : 'customer';
+    const roleRaw = typeof command.role === 'string' ? command.role : 'customer';
 
     if (!name || !email) {
-      this.logger.warn(
-        `evento ignorado por payload incompleto: ${JSON.stringify(command)}`,
-      );
+      this.logger.warn(`evento ignorado por payload incompleto: ${JSON.stringify(command)}`);
       return;
+    }
+
+    if (eventId) {
+      const isNew = await this.processedEventStore.markIfNew(eventId);
+      if (!isNew) {
+        this.logger.log(`evento duplicado ignorado: ${eventId}`);
+        return;
+      }
     }
 
     const role: UserRole = roleRaw === 'admin' ? 'admin' : 'customer';

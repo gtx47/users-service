@@ -10,6 +10,8 @@ import { PromoteToAdminUseCase } from './application/use-cases/promote-to-admin/
 import { SyncUserFromEventUseCase } from './application/use-cases/sync-user-from-event/sync-user-from-event.use-case';
 import { UpdateUserUseCase } from './application/use-cases/update-user/update-user.use-case';
 import { RabbitMQUserEventSubscriber } from './infrastructure/messaging/rabbitmq-user-event-subscriber';
+import { MongoProcessedEventStore } from './infrastructure/persistence/mongo-processed-event.store';
+import { PROCESSED_EVENT_MODEL_NAME, ProcessedEventSchema } from './infrastructure/persistence/processed-event.schema';
 import { MongoUserRepository } from './infrastructure/persistence/mongo-user.repository';
 import {
   USER_MODEL_NAME,
@@ -22,13 +24,17 @@ import { JwtAuthGuard } from './interfaces/http/guards/jwt-auth.guard';
 import { UsersController } from './interfaces/http/users.controller';
 import {
   ADMIN_PROMOTE_SECRET,
+  PROCESSED_EVENT_STORE,
   TOKEN_SERVICE,
   USER_REPOSITORY,
 } from './users.tokens';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: USER_MODEL_NAME, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: USER_MODEL_NAME, schema: UserSchema },
+      { name: PROCESSED_EVENT_MODEL_NAME, schema: ProcessedEventSchema },
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -50,6 +56,7 @@ import {
     JwtAuthGuard,
     AdminGuard,
     { provide: USER_REPOSITORY, useClass: MongoUserRepository },
+    { provide: PROCESSED_EVENT_STORE, useClass: MongoProcessedEventStore },
     { provide: TOKEN_SERVICE, useClass: JwtTokenService },
     {
       provide: ADMIN_PROMOTE_SECRET,
